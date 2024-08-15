@@ -30,17 +30,17 @@ class BarcodeStressTestApp:
         # 輸入內容設置
         tk.Label(root, text="工單號碼:").pack(pady=5)
         self.first_field_entry = tk.Entry(root)
-        self.first_field_entry.insert(0, "預設工單號碼")
+        self.first_field_entry.insert(0, "1407")
         self.first_field_entry.pack(pady=5)
 
         tk.Label(root, text="包裝工站:").pack(pady=5)
         self.second_field_entry = tk.Entry(root)
-        self.second_field_entry.insert(0, "預設包裝工站")
+        self.second_field_entry.insert(0, "AUTO")
         self.second_field_entry.pack(pady=5)
 
         tk.Label(root, text="包裝員工:").pack(pady=5)
         self.third_field_entry = tk.Entry(root)
-        self.third_field_entry.insert(0, "預設包裝員工")
+        self.third_field_entry.insert(0, "YS00472")
         self.third_field_entry.pack(pady=5)
 
         # 倒數計時顯示
@@ -183,20 +183,22 @@ class BarcodeStressTestApp:
         return 1  # 默認從第二行開始（忽略標題）
 
     def check_field_values(self):
-        # 模擬檢查第二和第三欄位是否有值
-        return bool(self.second_field_entry.get().strip()) and bool(self.third_field_entry.get().strip())
+        # 檢查第二和第三欄位是否有值
+        if not self.second_field_entry.get().strip():
+            return False
+        if not self.third_field_entry.get().strip():
+            return False
+        return True
 
     def fill_default_values(self):
-        # 如果第二或第三欄位為空，填入預設值
+        # 如果第二或第三欄位為空，直接在 GUI 中填入預設值
         if not self.second_field_entry.get().strip():
-            pyautogui.typewrite(self.second_field_entry.get())
-            pyautogui.press('enter')
-            time.sleep(0.5)
+            self.second_field_entry.delete(0, tk.END)
+            self.second_field_entry.insert(0, "AUTO")
 
         if not self.third_field_entry.get().strip():
-            pyautogui.typewrite(self.third_field_entry.get())
-            pyautogui.press('enter')
-            time.sleep(0.5)
+            self.third_field_entry.delete(0, tk.END)
+            self.third_field_entry.insert(0, "YS00472")
 
 if __name__ == "__main__":
     root = tk.Tk()

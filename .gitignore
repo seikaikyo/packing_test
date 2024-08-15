@@ -13,3 +13,4 @@ packaging_data.db
 main.spec
 dist/
 build/
+progress.txt
