@@ -1,0 +1,15 @@
+# Ignore Python virtual environment
+venv/
+.venv/
+
+# Ignore other files and folders that should not be committed
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+*.log
+packaging_data.db
+main.spec
+dist/
+build/
