@@ -1,3 +1,4 @@
 pyautogui
 pandas
 openpyxl
+paho-mqtt

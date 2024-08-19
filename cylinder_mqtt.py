@@ -6,12 +6,14 @@ import pandas as pd
 import threading
 import datetime
 import os
+import json
+import paho.mqtt.client as mqtt
 
-class BarcodeStressTestApp:
+class MQTTBarcodeStressTestApp:
     def __init__(self, root):
-        self.log_file = "debug_log_input.txt"
+        self.log_file = "debug_log_mqtt.txt"
         self.root = root
-        self.root.title("濾筒 包裝輸入程式壓力測試與自動輸入工具")
+        self.root.title("濾筒 MQTT 包裝輸入程式壓力測試與自動輸入工具")
         self.root.geometry("500x600")
 
         self.is_running = False
@@ -20,7 +22,13 @@ class BarcodeStressTestApp:
         self.failed_inputs = 0
         self.start_time = None
         self.end_time = None
-        self.progress_file = "progress_input.txt"
+        self.progress_file = "progress_mqtt.txt"
+        self.mqtt_client = mqtt.Client()
+
+        # MQTT 設定
+        self.mqtt_host = "10.6.51.204"
+        self.mqtt_port = 1883
+        self.mqtt_topic = "RFID/Terminal/PC02"
 
         # 延遲時間設置
         tk.Label(root, text="延遲(秒):").pack(pady=5)
@@ -70,9 +78,21 @@ class BarcodeStressTestApp:
         self.status_label = tk.Label(root, text="狀態: 閒置")
         self.status_label.pack(pady=20)
 
+        # 連接 MQTT
+        self.connect_mqtt()
+
     def log(self, message):
         with open(self.log_file, "a", encoding="utf-8") as log:
             log.write(f"{datetime.datetime.now()}: {message}\n")
+
+    def connect_mqtt(self):
+        try:
+            self.mqtt_client.connect(self.mqtt_host, self.mqtt_port, 60)
+            self.mqtt_client.loop_start()
+            self.log("成功連接到 MQTT 伺服器")
+        except Exception as e:
+            self.log(f"連接 MQTT 伺服器失敗: {e}")
+            messagebox.showwarning("警告", f"無法連接到 MQTT 伺服器: {e}")
 
     def select_file(self):
         self.log("選擇 Excel 檔案")
@@ -122,6 +142,7 @@ class BarcodeStressTestApp:
             pyautogui.press('enter')
             pyautogui.typewrite(self.second_field_entry.get())
             pyautogui.press('enter')
+            # pyautogui.press('tab')
             pyautogui.typewrite(self.third_field_entry.get())
             pyautogui.press('enter')
             self.log("前三個欄位已透過 GUI 輸入")
@@ -144,25 +165,41 @@ class BarcodeStressTestApp:
                     self.log(f"檢查第 {index} 筆後的欄位值")
                     self.check_and_fill_fields()
 
-                # 輸入從 Excel 讀取的產品序號到第四個欄位
-                pyautogui.typewrite(str(row['serial_number']))
-                pyautogui.press('enter')
+                # 準備 MQTT 發送的訊息
+                message = {
+                    "Terminal": "PC02",
+                    "Success": True,
+                    "Message": "",
+                    "dateTime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Content": str(row['serial_number'])
+                }
+                mqtt_message = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}  -- MQTTsend : {json.dumps(message)}"
+                
+                # 透過 MQTT 送出從 Excel 讀取的產品序號到第四個欄位
+                self.send_mqtt_message(mqtt_message)
                 time.sleep(self.serial_interval)
 
                 self.successful_inputs += 1
                 self.save_progress(index + 1)  # 保存當前進度
             except Exception as e:
-                self.log(f"在第 {index} 筆輸入時發生錯誤: {e}")
+                self.log(f"在第 {index} 筆送出時發生錯誤: {e}")
                 self.failed_inputs += 1
 
             self.total_inputs += 1
-            self.log(f"成功輸入第 {index + 1} 筆")
+            self.log(f"成功送出第 {index + 1} 筆")
 
         self.is_running = False
         self.end_time = datetime.datetime.now()
         self.status_label.config(text="狀態: 完成")
         self.log("測試完成")
         self.generate_report()
+
+    def send_mqtt_message(self, message):
+        try:
+            self.mqtt_client.publish(self.mqtt_topic, message)
+            self.log(f"已送出 MQTT 訊息: {message}")
+        except Exception as e:
+            self.log(f"MQTT 訊息送出失敗: {e}")
 
     def stop_test(self):
         if self.is_running:
@@ -182,10 +219,10 @@ class BarcodeStressTestApp:
             測試開始時間: {self.start_time}
             測試結束時間: {self.end_time}
             總耗時: {total_time:.2f} 秒
-            總輸入次數: {self.total_inputs}
-            成功輸入次數: {self.successful_inputs}
-            失敗輸入次數: {self.failed_inputs}
-            每次輸入平均耗時: {avg_time_per_input:.2f} 秒
+            總送出次數: {self.total_inputs}
+            成功送出次數: {self.successful_inputs}
+            失敗送出次數: {self.failed_inputs}
+            每次送出平均耗時: {avg_time_per_input:.2f} 秒
             """
 
             self.log(f"生成報告: {report}")
@@ -239,5 +276,6 @@ class BarcodeStressTestApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = BarcodeStressTestApp(root)
+    app = MQTTBarcodeStressTestApp(root)
     root.mainloop()
+
