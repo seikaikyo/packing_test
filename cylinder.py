@@ -47,7 +47,7 @@ class BarcodeStressTestApp:
         # 產品序號輸入間隔
         tk.Label(root, text="產品序號輸入間隔(秒):").pack(pady=5)
         self.serial_interval_entry = tk.Entry(root)
-        self.serial_interval_entry.insert(0, "1")
+        self.serial_interval_entry.insert(0, "0.5")
         self.serial_interval_entry.pack(pady=5)
 
         # 倒數計時顯示

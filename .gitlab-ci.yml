@@ -1,0 +1,13 @@
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - docker build -t packing_test:latest .
+
+test:
+  stage: test
+  script:
+    - docker run --rm packing_test:latest
